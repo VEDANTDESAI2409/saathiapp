@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/city_provider.dart';
 import '../main_navigation_screen.dart';
 import '../auth/login_screen.dart';
 
@@ -25,11 +26,18 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final cityProvider = Provider.of<CityProvider>(context, listen: false);
+
     await authProvider.initUser();
 
     if (!mounted) return;
 
-    if (authProvider.isAuthenticated) {
+    final user = authProvider.currentUser;
+
+    if (authProvider.isAuthenticated && user != null) {
+      // Restore user's preferred city
+      cityProvider.setCity(user.registeredCity);
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainNavigationScreen()),

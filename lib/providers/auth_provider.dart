@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/models/user_model.dart';
 import '../data/repositories/auth_repository.dart';
@@ -20,7 +21,9 @@ class AuthProvider extends ChangeNotifier {
   Future<void> initUser() async {
     _isLoading = true;
     notifyListeners();
+
     _currentUser = await _authRepository.getCurrentUser();
+
     _isLoading = false;
     notifyListeners();
   }
@@ -28,7 +31,9 @@ class AuthProvider extends ChangeNotifier {
   Future<void> login(String identifier, String password) async {
     _isLoading = true;
     notifyListeners();
+
     _currentUser = await _authRepository.loginUser(identifier, password);
+
     _isLoading = false;
     notifyListeners();
   }
@@ -39,6 +44,10 @@ class AuthProvider extends ChangeNotifier {
       _currentUser!.id,
       city,
     );
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('preferred_city', city);
+
     notifyListeners();
   }
 

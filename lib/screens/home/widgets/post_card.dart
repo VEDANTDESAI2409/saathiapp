@@ -17,6 +17,9 @@ class PostCard extends StatelessWidget {
     final isNeed = post.isNeed;
     final badgeBg = isNeed ? AppColors.trustTeal : AppColors.warmOrange;
     final badgeLabel = isNeed ? 'NEED' : 'OFFER';
+    final unitLabel = post.quantityUnit.isNotEmpty
+        ? post.quantityUnit
+        : 'items';
 
     return AppCard(
       onTap: () {
@@ -79,7 +82,7 @@ class PostCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Quantity Progress Bar
+          // Quantity Progress Bar with Category Unit
           Row(
             children: [
               const Icon(
@@ -89,7 +92,7 @@ class PostCard extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'Remaining: ${post.remainingQuantity} of ${post.totalQuantity}',
+                'Remaining: ${post.remainingQuantity} of ${post.totalQuantity} $unitLabel',
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,

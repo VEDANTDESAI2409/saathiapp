@@ -4,11 +4,14 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/constants/app_constants.dart';
+import '../../core/localization/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/city_provider.dart';
 import '../../providers/post_provider.dart';
 import '../../providers/category_provider.dart';
 import '../../data/models/post_model.dart';
+import 'location_picker_screen.dart';
 
 class CreateOfferScreen extends StatefulWidget {
   const CreateOfferScreen({super.key});
@@ -29,23 +32,30 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
   final _contactController = TextEditingController();
 
   String _selectedCategoryId = 'cat_food';
+  late String _selectedUnit;
   bool _agreeToTerms = true;
   bool _isSubmitting = false;
-  List<String> _mediaUrls = [];
+  final List<String> _mediaUrls = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedUnit = AppConstants.getDefaultUnitForCategory(_selectedCategoryId);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final cityProvider = Provider.of<CityProvider>(context);
-    final postProvider = Provider.of<PostProvider>(context);
     final categoryProvider = Provider.of<CategoryProvider>(context);
+    final cityProvider = Provider.of<CityProvider>(context);
+    final loc = AppLocalizations.of(context);
 
-    final user = authProvider.currentUser;
-    final city = cityProvider.selectedCity;
+    final preferredCity = cityProvider.selectedCity;
+    final availableUnits =
+        AppConstants.categoryUnits[_selectedCategoryId] ?? ['items'];
 
     return Scaffold(
       backgroundColor: AppColors.warmCream,
-      appBar: AppBar(title: const Text('Offer Assistance (Offer)')),
+      appBar: AppBar(title: const Text('Offer Assistance (Step 1 of 2)')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
@@ -66,7 +76,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
               const SizedBox(height: 16),
 
               DropdownButtonFormField<String>(
-                value: _selectedCategoryId,
+                initialValue: _selectedCategoryId,
                 decoration: const InputDecoration(
                   labelText: 'Service Category *',
                 ),
@@ -74,7 +84,14 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                   return DropdownMenuItem(value: c.id, child: Text(c.name));
                 }).toList(),
                 onChanged: (val) {
-                  if (val != null) setState(() => _selectedCategoryId = val);
+                  if (val != null) {
+                    setState(() {
+                      _selectedCategoryId = val;
+                      _selectedUnit = AppConstants.getDefaultUnitForCategory(
+                        val,
+                      );
+                    });
+                  }
                 },
               ),
               const SizedBox(height: 16),
@@ -92,35 +109,55 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
               ),
               const SizedBox(height: 16),
 
+              // Quantity & Category Unit Row (Requirement 6)
               Row(
                 children: [
                   Expanded(
+                    flex: 2,
                     child: TextFormField(
                       controller: _quantityController,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
-                        labelText: 'Available Capacity / Qty *',
+                        labelText: 'Quantity *',
                       ),
                       validator: (val) =>
-                          val == null || int.tryParse(val) == null
-                          ? 'Valid number'
+                          val == null ||
+                              int.tryParse(val) == null ||
+                              int.parse(val) <= 0
+                          ? 'Valid quantity'
                           : null,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: TextFormField(
-                      controller: _areaController,
+                    flex: 3,
+                    child: DropdownButtonFormField<String>(
+                      initialValue: availableUnits.contains(_selectedUnit)
+                          ? _selectedUnit
+                          : availableUnits.first,
                       decoration: const InputDecoration(
-                        labelText: 'Area / Landmark *',
-                        hintText: 'e.g., Commerce Six Roads',
+                        labelText: 'Quantity Unit *',
                       ),
-                      validator: (val) => val == null || val.trim().isEmpty
-                          ? 'Area required'
-                          : null,
+                      items: availableUnits.map((u) {
+                        return DropdownMenuItem(value: u, child: Text(u));
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) setState(() => _selectedUnit = val);
+                      },
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _areaController,
+                decoration: InputDecoration(
+                  labelText: 'Area / Landmark ($preferredCity) *',
+                  hintText: 'e.g., Commerce Six Roads',
+                ),
+                validator: (val) =>
+                    val == null || val.trim().isEmpty ? 'Area required' : null,
               ),
               const SizedBox(height: 16),
 
@@ -186,12 +223,13 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
               ),
               const SizedBox(height: 20),
 
+              // Step 1 Next Button -> Step 2 Location Picker (Requirement 7)
               AppButton(
-                label: 'Publish Assistance Offer',
+                label: loc.translate('next'),
                 width: double.infinity,
                 variant: AppButtonVariant.primary,
                 isLoading: _isSubmitting,
-                onPressed: _submitForm,
+                onPressed: _proceedToLocationPicker,
               ),
             ],
           ),
@@ -208,9 +246,29 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
     }
   }
 
-  Future<void> _submitForm() async {
+  Future<void> _proceedToLocationPicker() async {
     if (!_formKey.currentState!.validate() || !_agreeToTerms) return;
 
+    final cityProvider = Provider.of<CityProvider>(context, listen: false);
+    final loc = AppLocalizations.of(context);
+
+    final locationResult = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationPickerScreen(
+          initialCity: cityProvider.selectedCity,
+          initialArea: _areaController.text.trim(),
+          submitButtonLabel: loc.translate('publishAssistanceOffer'),
+        ),
+      ),
+    );
+
+    if (locationResult != null) {
+      await _finalSubmitOffer(locationResult);
+    }
+  }
+
+  Future<void> _finalSubmitOffer(Map<String, dynamic> locationData) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final cityProvider = Provider.of<CityProvider>(context, listen: false);
     final postProvider = Provider.of<PostProvider>(context, listen: false);
@@ -220,7 +278,12 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
     );
 
     final user = authProvider.currentUser;
-    final city = cityProvider.selectedCity;
+    final city = locationData['city'] as String? ?? cityProvider.selectedCity;
+    final areaName =
+        locationData['areaName'] as String? ?? _areaController.text.trim();
+    final lat = locationData['latitude'] as double?;
+    final lng = locationData['longitude'] as double?;
+
     final qty = int.tryParse(_quantityController.text) ?? 1;
 
     final cat = categoryProvider.categories.firstWhere(
@@ -244,15 +307,18 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
       priority: 'normal',
       totalQuantity: qty,
       remainingQuantity: qty,
+      quantityUnit: _selectedUnit,
       city: city,
-      areaName: _areaController.text.trim(),
+      areaName: areaName,
+      latitude: lat,
+      longitude: lng,
       durationText: _durationController.text.trim(),
       contactInstructions: _contactController.text.trim(),
       mediaUrls: _mediaUrls,
       createdAt: DateTime.now().toIso8601String().split('.').first,
     );
 
-    await postProvider.createPost(newPost);
+    await postProvider.createPost(newPost, cityProvider.selectedCity);
     setState(() => _isSubmitting = false);
 
     if (mounted) {

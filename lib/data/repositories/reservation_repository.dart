@@ -1,6 +1,7 @@
 import '../database/db_helper.dart';
 import '../models/reservation_model.dart';
 import '../models/post_model.dart';
+import '../models/evidence_model.dart';
 
 class ReservationRepository {
   Future<List<ReservationModel>> getReservationsForUser(String userId) async {
@@ -18,10 +19,19 @@ class ReservationRepository {
     required PostModel post,
     required String reservedById,
     required String reservedByName,
+    required String userPreferredCity,
     required int reservedQuantity,
     String note = '',
   }) async {
     final db = await DBHelper.database;
+
+    // Requirement 1 Enforcement: City matching rule
+    if (userPreferredCity.trim().toLowerCase() !=
+        post.city.trim().toLowerCase()) {
+      throw Exception(
+        'You can only fulfill/reserve help requests in your registered preferred city ($userPreferredCity).',
+      );
+    }
 
     // Check if remaining quantity is sufficient
     if (post.remainingQuantity < reservedQuantity) {
@@ -107,11 +117,40 @@ class ReservationRepository {
     }
   }
 
-  Future<void> completeReservation(
-    ReservationModel reservation,
-    String currentUserId,
-  ) async {
+  Future<void> completeReservation({
+    required ReservationModel reservation,
+    required String currentUserId,
+    required String currentUserName,
+    required String photoUrl,
+    String notes = '',
+  }) async {
+    // Requirement 12 Enforcement: Mandatory Photo Evidence
+    if (photoUrl.trim().isEmpty) {
+      throw Exception(
+        'Photo evidence is required to complete this assistance.',
+      );
+    }
+
     final db = await DBHelper.database;
+
+    // 1. Save evidence
+    final evidence = EvidenceModel(
+      id: 'ev_${DateTime.now().millisecondsSinceEpoch}',
+      reservationId: reservation.id,
+      postId: reservation.postId,
+      uploadedByUserId: currentUserId,
+      uploadedByUserName: currentUserName,
+      userRole: currentUserId == reservation.reservedById
+          ? 'provider'
+          : 'recipient',
+      photoUrl: photoUrl,
+      description: notes,
+      timestamp: DateTime.now().toIso8601String().split('.').first,
+    );
+
+    await db.insert('evidence', evidence.toMap());
+
+    // 2. Mark reservation as completed
     await db.update(
       'reservations',
       {'status': 'completed'},
@@ -119,15 +158,15 @@ class ReservationRepository {
       whereArgs: [reservation.id],
     );
 
-    // Also mark post as help_received / closed if all fulfilled
+    // 3. Mark post as completed (which removes it from Home & Explore active feeds)
     await db.update(
       'posts',
-      {'status': 'help_received'},
+      {'status': 'completed'},
       where: 'id = ?',
       whereArgs: [reservation.postId],
     );
 
-    // Update user score
+    // 4. Update user score & helps count
     final userMaps = await db.query(
       'users',
       where: 'id = ?',
@@ -143,5 +182,17 @@ class ReservationRepository {
         whereArgs: [reservation.reservedById],
       );
     }
+  }
+
+  Future<List<EvidenceModel>> getEvidenceForReservation(
+    String reservationId,
+  ) async {
+    final db = await DBHelper.database;
+    final maps = await db.query(
+      'evidence',
+      where: 'reservationId = ?',
+      whereArgs: [reservationId],
+    );
+    return maps.map((m) => EvidenceModel.fromMap(m)).toList();
   }
 }

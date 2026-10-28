@@ -42,10 +42,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       listen: false,
     );
 
-    final city = cityProvider.selectedCity;
+    final preferredCity = cityProvider.selectedCity;
     final user = authProvider.currentUser;
 
-    postProvider.fetchPosts(city: city);
+    postProvider.fetchHomePosts(preferredCity: preferredCity);
+    postProvider.fetchExplorePosts();
+
     if (user != null) {
       postProvider.fetchMonthlyUsage(user.id);
       postProvider.fetchUserReservations(user.id);

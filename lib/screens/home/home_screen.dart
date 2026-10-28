@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/app_button.dart';
 import '../../core/widgets/empty_state_widget.dart';
 import '../../providers/post_provider.dart';
 import '../../providers/category_provider.dart';
@@ -12,7 +11,6 @@ import 'widgets/service_category_strip.dart';
 import 'widgets/urgent_needs_section.dart';
 import 'widgets/post_card.dart';
 import '../create/create_need_screen.dart';
-import '../create/create_offer_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -23,13 +21,13 @@ class HomeScreen extends StatelessWidget {
     final categoryProvider = Provider.of<CategoryProvider>(context);
     final cityProvider = Provider.of<CityProvider>(context);
 
-    final city = cityProvider.selectedCity;
-    final posts = postProvider.posts;
+    final preferredCity = cityProvider.selectedCity;
+    final homePosts = postProvider.homePosts;
     final urgentPosts = postProvider.urgentPosts;
 
     return RefreshIndicator(
       onRefresh: () async {
-        await postProvider.fetchPosts(city: city);
+        await postProvider.fetchHomePosts(preferredCity: preferredCity);
         await categoryProvider.loadCategoriesAndBanners();
       },
       child: SingleChildScrollView(
@@ -37,52 +35,11 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Hero Slider Banners
+            // 1. Hero Slider Banners (Includes Looping Helpline Slide)
             HeroSlider(banners: categoryProvider.banners),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // 2. Action Choice Buttons: "I Need Help" & "I Want to Help"
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: AppButton(
-                      label: 'I Need Help',
-                      icon: Icons.volunteer_activism_outlined,
-                      variant: AppButtonVariant.primary,
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CreateNeedScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: AppButton(
-                      label: 'I Want to Help',
-                      icon: Icons.handshake_outlined,
-                      variant: AppButtonVariant.secondary,
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const CreateOfferScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // 3. Service Categories Strip
+            // 2. Service Categories Strip with Images
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -96,81 +53,99 @@ class HomeScreen extends StatelessWidget {
                       color: AppColors.deepForest,
                     ),
                   ),
-                  if (postProvider.selectedCategoryFilter != 'all')
+                  if (postProvider.homeCategoryFilter != 'all')
                     TextButton(
                       onPressed: () {
-                        postProvider.fetchPosts(city: city, categoryId: 'all');
+                        postProvider.fetchHomePosts(
+                          preferredCity: preferredCity,
+                          categoryId: 'all',
+                        );
                       },
                       child: const Text('Reset Filter'),
                     ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             ServiceCategoryStrip(
               categories: categoryProvider.categories,
-              selectedCategory: postProvider.selectedCategoryFilter,
+              selectedCategory: postProvider.homeCategoryFilter,
               onSelectCategory: (catId) {
-                postProvider.fetchPosts(city: city, categoryId: catId);
+                postProvider.fetchHomePosts(
+                  preferredCity: preferredCity,
+                  categoryId: catId,
+                );
               },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // 4. Urgent & Emergency Needs Section
+            // 3. Urgent & Emergency Needs Section
             UrgentNeedsSection(urgentPosts: urgentPosts),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // 5. City-Based Community Feed Filter Tabs
+            // 4. Simplified Home Community Feed Header & Filter Buttons (Requirement 8)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  Text(
-                    'Community Feed ($city)',
-                    style: const TextStyle(
+                  // Simplified Header (city name removed from header title)
+                  const Text(
+                    'Community Feed',
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: AppColors.deepForest,
                     ),
                   ),
                   const Spacer(),
-                  _typeFilterChip(
-                    context,
-                    label: 'All',
-                    value: 'all',
-                    selected: postProvider.selectedTypeFilter == 'all',
-                  ),
-                  const SizedBox(width: 4),
-                  _typeFilterChip(
-                    context,
-                    label: 'Needs',
-                    value: 'need',
-                    selected: postProvider.selectedTypeFilter == 'need',
-                  ),
-                  const SizedBox(width: 4),
-                  _typeFilterChip(
-                    context,
-                    label: 'Offers',
-                    value: 'offer',
-                    selected: postProvider.selectedTypeFilter == 'offer',
+
+                  // All 3 filter buttons made compact and responsive
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _compactTypeChip(
+                        context,
+                        label: 'All',
+                        value: 'all',
+                        selected: postProvider.homeTypeFilter == 'all',
+                        preferredCity: preferredCity,
+                      ),
+                      const SizedBox(width: 4),
+                      _compactTypeChip(
+                        context,
+                        label: 'Needs',
+                        value: 'need',
+                        selected: postProvider.homeTypeFilter == 'need',
+                        preferredCity: preferredCity,
+                      ),
+                      const SizedBox(width: 4),
+                      _compactTypeChip(
+                        context,
+                        label: 'Offers',
+                        value: 'offer',
+                        selected: postProvider.homeTypeFilter == 'offer',
+                        preferredCity: preferredCity,
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 12),
 
-            // 6. Posts List
-            if (postProvider.isLoading)
+            // 5. Posts List (City-isolated for Preferred City)
+            if (postProvider.isHomeLoading)
               const Padding(
                 padding: EdgeInsets.all(32),
                 child: Center(child: CircularProgressIndicator()),
               )
-            else if (posts.isEmpty)
+            else if (homePosts.isEmpty)
               Padding(
                 padding: const EdgeInsets.all(24),
                 child: EmptyStateWidget(
-                  title: 'No Needs or Offers in $city yet',
-                  description: 'Be the first to post a request or offer assistance in your city!',
+                  title: 'No active requests in $preferredCity',
+                  description:
+                      'Be the first to post a request or offer assistance in $preferredCity!',
                   buttonLabel: 'Create Request / Offer',
                   onButtonPressed: () {
                     Navigator.push(
@@ -187,9 +162,9 @@ class HomeScreen extends StatelessWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: posts.length,
+                itemCount: homePosts.length,
                 itemBuilder: (context, i) {
-                  return PostCard(post: posts[i]);
+                  return PostCard(post: homePosts[i]);
                 },
               ),
 
@@ -200,30 +175,30 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _typeFilterChip(
+  Widget _compactTypeChip(
     BuildContext context, {
     required String label,
     required String value,
     required bool selected,
+    required String preferredCity,
   }) {
     final postProvider = Provider.of<PostProvider>(context, listen: false);
-    final cityProvider = Provider.of<CityProvider>(context, listen: false);
 
     return GestureDetector(
       onTap: () {
-        postProvider.fetchPosts(city: cityProvider.selectedCity, type: value);
+        postProvider.fetchHomePosts(preferredCity: preferredCity, type: value);
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
           color: selected ? AppColors.trustTeal : AppColors.softMint,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           label,
           style: TextStyle(
             color: selected ? AppColors.white : AppColors.deepForest,
-            fontSize: 11,
+            fontSize: 10,
             fontWeight: selected ? FontWeight.bold : FontWeight.normal,
           ),
         ),

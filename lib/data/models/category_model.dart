@@ -3,6 +3,7 @@ class CategoryModel {
   final String name;
   final String iconName;
   final String description;
+  final String imageUrl;
   final int activeNeedsCount;
   final int activeOffersCount;
 
@@ -11,6 +12,7 @@ class CategoryModel {
     required this.name,
     required this.iconName,
     required this.description,
+    this.imageUrl = '',
     this.activeNeedsCount = 0,
     this.activeOffersCount = 0,
   });
@@ -21,6 +23,7 @@ class CategoryModel {
       'name': name,
       'iconName': iconName,
       'description': description,
+      'imageUrl': imageUrl,
       'activeNeedsCount': activeNeedsCount,
       'activeOffersCount': activeOffersCount,
     };
@@ -32,6 +35,7 @@ class CategoryModel {
       name: map['name'] ?? '',
       iconName: map['iconName'] ?? 'handshake',
       description: map['description'] ?? '',
+      imageUrl: map['imageUrl'] ?? '',
       activeNeedsCount: map['activeNeedsCount'] ?? 0,
       activeOffersCount: map['activeOffersCount'] ?? 0,
     );

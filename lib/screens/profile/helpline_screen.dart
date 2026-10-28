@@ -21,7 +21,7 @@ class HelplineScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Banner
+            // Banner Card
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -45,7 +45,7 @@ class HelplineScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'SaathiApp Helpline',
+                    'SaathiApp Management Support',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -87,19 +87,46 @@ class HelplineScreen extends StatelessWidget {
                     ),
                   ] else ...[
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: AppColors.warmOrange.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
+                        color: AppColors.softMint,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
                       ),
-                      child: const Text(
-                        'Helpline number not configured in current environment. Please configure AppConfig.helplineNumber.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.deepForest,
-                        ),
-                        textAlign: TextAlign.center,
+                      child: const Column(
+                        children: [
+                          Icon(
+                            Icons.phone_disabled_outlined,
+                            color: AppColors.textMuted,
+                            size: 32,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Helpline number not configured',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.deepForest,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Management helpline phone number must be configured in AppConfig.helplineNumber before release.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    const AppButton(
+                      label: 'Call Helpline (Unavailable)',
+                      icon: Icons.phone,
+                      width: double.infinity,
+                      onPressed: null, // Disabled action
                     ),
                   ],
                 ],
@@ -119,7 +146,7 @@ class HelplineScreen extends StatelessWidget {
 
             _faqCard(
               'Unanswered Emergency Requests',
-              'Escalate urgent blood or medical needs to our team.',
+              'Escalate urgent blood or medical needs to our support team.',
             ),
             _faqCard(
               'Dispute & Misuse Escalation',

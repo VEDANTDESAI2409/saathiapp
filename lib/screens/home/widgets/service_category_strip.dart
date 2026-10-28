@@ -18,7 +18,7 @@ class ServiceCategoryStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 90,
+      height: 95,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -26,17 +26,16 @@ class ServiceCategoryStrip extends StatelessWidget {
         itemBuilder: (context, i) {
           if (i == 0) {
             final isSelected = selectedCategory == 'all';
-            return _categoryChip(
-              name: 'All',
-              icon: Icons.grid_view_rounded,
+            return _allCategoryChip(
               isSelected: isSelected,
               onTap: () => onSelectCategory('all'),
             );
           }
           final cat = categories[i - 1];
           final isSelected = selectedCategory == cat.id;
-          return _categoryChip(
+          return _categoryImageChip(
             name: cat.name,
+            imageUrl: cat.imageUrl,
             icon: _getCategoryIcon(cat.iconName),
             isSelected: isSelected,
             onTap: () => onSelectCategory(cat.id),
@@ -46,8 +45,53 @@ class ServiceCategoryStrip extends StatelessWidget {
     );
   }
 
-  Widget _categoryChip({
+  Widget _allCategoryChip({
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 76,
+        margin: const EdgeInsets.only(right: 12),
+        child: Column(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.trustTeal : AppColors.softMint,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? AppColors.trustTeal : AppColors.border,
+                  width: 1.5,
+                ),
+              ),
+              child: Icon(
+                Icons.grid_view_rounded,
+                color: isSelected ? AppColors.white : AppColors.deepForest,
+                size: 26,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'All',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? AppColors.trustTeal : AppColors.deepForest,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _categoryImageChip({
     required String name,
+    required String imageUrl,
     required IconData icon,
     required bool isSelected,
     required VoidCallback onTap,
@@ -60,20 +104,24 @@ class ServiceCategoryStrip extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              width: 52,
-              height: 52,
+              width: 56,
+              height: 56,
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.trustTeal : AppColors.softMint,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: isSelected ? AppColors.trustTeal : AppColors.border,
-                  width: 1.5,
+                  width: isSelected ? 2.5 : 1.0,
                 ),
               ),
-              child: Icon(
-                icon,
-                color: isSelected ? AppColors.white : AppColors.deepForest,
-                size: 24,
+              child: ClipOval(
+                child: imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            _iconFallback(icon, isSelected),
+                      )
+                    : _iconFallback(icon, isSelected),
               ),
             ),
             const SizedBox(height: 6),
@@ -90,6 +138,17 @@ class ServiceCategoryStrip extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _iconFallback(IconData icon, bool isSelected) {
+    return Container(
+      color: isSelected ? AppColors.trustTeal : AppColors.softMint,
+      child: Icon(
+        icon,
+        color: isSelected ? AppColors.white : AppColors.deepForest,
+        size: 24,
       ),
     );
   }

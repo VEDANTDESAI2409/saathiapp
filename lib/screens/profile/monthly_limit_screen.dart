@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_button.dart';
-import '../../providers/auth_provider.dart';
 import '../../providers/post_provider.dart';
 
 class MonthlyLimitScreen extends StatefulWidget {
@@ -19,10 +18,8 @@ class _MonthlyLimitScreenState extends State<MonthlyLimitScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
     final postProvider = Provider.of<PostProvider>(context);
 
-    final user = authProvider.currentUser;
     final usage = postProvider.currentMonthlyUsage;
 
     final count = usage?.count ?? 0;
@@ -125,13 +122,15 @@ class _MonthlyLimitScreenState extends State<MonthlyLimitScreen> {
               onPressed: () async {
                 if (_reasonController.text.trim().isEmpty) return;
 
+                final messenger = ScaffoldMessenger.of(context);
+
                 setState(() => _isSubmitting = true);
                 await Future.delayed(const Duration(seconds: 1));
-                setState(() => _isSubmitting = false);
 
                 if (mounted) {
+                  setState(() => _isSubmitting = false);
                   _reasonController.clear();
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text(
                         'Limit exception request submitted for management review.',

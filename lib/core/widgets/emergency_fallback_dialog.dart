@@ -19,6 +19,7 @@ class EmergencyFallbackDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
     final helpline = AppConfig.helplineNumber;
+    final isConfigured = AppConfig.isHelplineConfigured();
 
     return AlertDialog(
       backgroundColor: AppColors.white,
@@ -68,26 +69,30 @@ class EmergencyFallbackDialog extends StatelessWidget {
               children: [
                 const Icon(Icons.phone_in_talk, color: AppColors.trustTeal),
                 const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Charity Management Helpline',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textSecondary,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Management Helpline',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
-                    ),
-                    Text(
-                      helpline,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.deepForest,
+                      Text(
+                        isConfigured ? helpline : 'Helpline Not Configured',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: isConfigured
+                              ? AppColors.deepForest
+                              : AppColors.textMuted,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -104,17 +109,23 @@ class EmergencyFallbackDialog extends StatelessWidget {
         ),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.emergencyRed,
+            backgroundColor: isConfigured
+                ? AppColors.emergencyRed
+                : AppColors.border,
             foregroundColor: AppColors.white,
           ),
           icon: const Icon(Icons.phone),
           label: Text(loc.translate('callHelpline')),
-          onPressed: () async {
-            final Uri url = Uri.parse('tel:${helpline.replaceAll(' ', '')}');
-            if (await canLaunchUrl(url)) {
-              await launchUrl(url);
-            }
-          },
+          onPressed: isConfigured
+              ? () async {
+                  final Uri url = Uri.parse(
+                    'tel:${helpline.replaceAll(' ', '')}',
+                  );
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url);
+                  }
+                }
+              : null, // Disabled action when helpline is unconfigured
         ),
       ],
     );

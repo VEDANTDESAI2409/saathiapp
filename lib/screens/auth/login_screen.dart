@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/localization/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/city_provider.dart';
+import '../../providers/language_provider.dart';
 import '../main_navigation_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -27,6 +29,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final cityProvider = Provider.of<CityProvider>(context, listen: false);
+    final langProvider = Provider.of<LanguageProvider>(context);
+    final loc = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: AppColors.warmCream,
@@ -36,7 +40,25 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 20),
+              // Requirement 18: Language Selector Bar on Login Screen
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  const Icon(
+                    Icons.language,
+                    size: 18,
+                    color: AppColors.trustTeal,
+                  ),
+                  const SizedBox(width: 4),
+                  _langChip('en', 'English', langProvider),
+                  const SizedBox(width: 4),
+                  _langChip('gu', 'ગુજરાતી', langProvider),
+                  const SizedBox(width: 4),
+                  _langChip('hi', 'हिन्दी', langProvider),
+                ],
+              ),
+              const SizedBox(height: 12),
+
               Center(
                 child: Container(
                   padding: const EdgeInsets.all(16),
@@ -52,29 +74,29 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Center(
+              Center(
                 child: Text(
-                  'Welcome to SaathiApp',
-                  style: TextStyle(
-                    fontSize: 24,
+                  loc.translate('appName'),
+                  style: const TextStyle(
+                    fontSize: 26,
                     fontWeight: FontWeight.bold,
                     color: AppColors.deepForest,
                   ),
                 ),
               ),
-              const Center(
+              Center(
                 child: Text(
-                  'One account to request help and offer help in your city.',
-                  style: TextStyle(
+                  loc.translate('tagline'),
+                  style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
 
-              // Quick Account Selector Toggles for Demo
+              // Quick Account Selector Toggles for Testing
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -121,13 +143,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                         ),
                         ActionChip(
-                          label: const Text('Admin Support'),
+                          label: const Text('Rajesh (Surat)'),
                           backgroundColor: AppColors.white,
                           onPressed: () {
                             setState(() {
                               _emailPhoneController.text =
-                                  'admin@saathiapp.org';
-                              _selectedCity = 'Ahmedabad';
+                                  'rajesh@suratcare.org';
+                              _selectedCity = 'Surat';
                             });
                           },
                         ),
@@ -157,12 +179,12 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
 
-              // City Selector
+              // Preferred City Selector
               DropdownButtonFormField<String>(
-                value: _selectedCity,
-                decoration: const InputDecoration(
-                  labelText: 'Registered City',
-                  prefixIcon: Icon(Icons.location_city),
+                initialValue: _selectedCity,
+                decoration: InputDecoration(
+                  labelText: loc.translate('registeredCity'),
+                  prefixIcon: const Icon(Icons.location_city),
                 ),
                 items: AppConstants.supportedCities.map((city) {
                   return DropdownMenuItem(value: city, child: Text(city));
@@ -178,6 +200,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: double.infinity,
                 isLoading: _isLoading,
                 onPressed: () async {
+                  final navigator = Navigator.of(context);
                   setState(() => _isLoading = true);
                   await authProvider.login(
                     _emailPhoneController.text,
@@ -185,11 +208,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   );
                   await authProvider.setRegisteredCity(_selectedCity);
                   cityProvider.setCity(_selectedCity);
-                  setState(() => _isLoading = false);
-
                   if (mounted) {
-                    Navigator.pushReplacement(
-                      context,
+                    setState(() => _isLoading = false);
+                    navigator.pushReplacement(
                       MaterialPageRoute(
                         builder: (_) => const MainNavigationScreen(),
                       ),
@@ -201,7 +222,6 @@ class _LoginScreenState extends State<LoginScreen> {
               Center(
                 child: TextButton(
                   onPressed: () {
-                    // Quick guest access
                     authProvider.login('guest@saathiapp.org', 'pass');
                     cityProvider.setCity('Ahmedabad');
                     Navigator.pushReplacement(
@@ -215,6 +235,28 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _langChip(String code, String label, LanguageProvider langProvider) {
+    final isSelected = langProvider.locale.languageCode == code;
+    return GestureDetector(
+      onTap: () => langProvider.changeLanguage(code),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.trustTeal : AppColors.softMint,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: isSelected ? AppColors.white : AppColors.deepForest,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
       ),

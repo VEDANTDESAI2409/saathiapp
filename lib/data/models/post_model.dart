@@ -14,11 +14,14 @@ class PostModel {
   final String priority; // 'emergency', 'high', 'normal'
   final int totalQuantity;
   final int remainingQuantity;
+  final String quantityUnit; // e.g., 'meals', 'pairs', 'books', 'units'
   final String city;
   final String areaName;
+  final double? latitude;
+  final double? longitude;
   final String durationText;
   final String expiresAt;
-  final String status; // 'open', 'assistance_offered', 'help_arranged', 'help_received', 'closed', 'expired'
+  final String status; // 'open', 'assistance_offered', 'help_arranged', 'help_received', 'completed', 'closed', 'expired'
   final List<String> mediaUrls;
   final String contactInstructions;
   final bool isClosedEarly;
@@ -38,8 +41,11 @@ class PostModel {
     this.priority = 'normal',
     required this.totalQuantity,
     required this.remainingQuantity,
+    this.quantityUnit = 'items',
     required this.city,
     required this.areaName,
+    this.latitude,
+    this.longitude,
     this.durationText = 'Until fulfilled',
     this.expiresAt = '',
     this.status = 'open',
@@ -52,6 +58,7 @@ class PostModel {
   bool get isEmergency => priority == 'emergency';
   bool get isNeed => type == 'need';
   bool get isOffer => type == 'offer';
+  bool get isCompleted => status == 'completed';
 
   Map<String, dynamic> toMap() {
     return {
@@ -68,8 +75,11 @@ class PostModel {
       'priority': priority,
       'totalQuantity': totalQuantity,
       'remainingQuantity': remainingQuantity,
+      'quantityUnit': quantityUnit,
       'city': city,
       'areaName': areaName,
+      'latitude': latitude,
+      'longitude': longitude,
       'durationText': durationText,
       'expiresAt': expiresAt,
       'status': status,
@@ -88,7 +98,12 @@ class PostModel {
         if (decoded is List) {
           media = decoded.map((e) => e.toString()).toList();
         }
-      } catch (_) {}
+      } catch (_) {
+        if (map['mediaUrls'] is String &&
+            (map['mediaUrls'] as String).isNotEmpty) {
+          media = [map['mediaUrls'] as String];
+        }
+      }
     }
 
     return PostModel(
@@ -106,8 +121,15 @@ class PostModel {
       priority: map['priority'] ?? 'normal',
       totalQuantity: map['totalQuantity'] ?? 1,
       remainingQuantity: map['remainingQuantity'] ?? 1,
+      quantityUnit: map['quantityUnit'] ?? 'items',
       city: map['city'] ?? 'Ahmedabad',
       areaName: map['areaName'] ?? '',
+      latitude: map['latitude'] != null
+          ? (map['latitude'] as num).toDouble()
+          : null,
+      longitude: map['longitude'] != null
+          ? (map['longitude'] as num).toDouble()
+          : null,
       durationText: map['durationText'] ?? 'Until fulfilled',
       expiresAt: map['expiresAt'] ?? '',
       status: map['status'] ?? 'open',
@@ -132,8 +154,11 @@ class PostModel {
     String? priority,
     int? totalQuantity,
     int? remainingQuantity,
+    String? quantityUnit,
     String? city,
     String? areaName,
+    double? latitude,
+    double? longitude,
     String? durationText,
     String? expiresAt,
     String? status,
@@ -156,8 +181,11 @@ class PostModel {
       priority: priority ?? this.priority,
       totalQuantity: totalQuantity ?? this.totalQuantity,
       remainingQuantity: remainingQuantity ?? this.remainingQuantity,
+      quantityUnit: quantityUnit ?? this.quantityUnit,
       city: city ?? this.city,
       areaName: areaName ?? this.areaName,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       durationText: durationText ?? this.durationText,
       expiresAt: expiresAt ?? this.expiresAt,
       status: status ?? this.status,

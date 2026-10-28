@@ -12,33 +12,39 @@ class PostRepository {
     String? priority,
     String? searchQuery,
     String? status,
+    bool includeCompleted = false,
   }) async {
     final db = await DBHelper.database;
     String whereClause = '';
     List<dynamic> whereArgs = [];
 
+    // Exclude completed requests from active feeds by default
+    if (!includeCompleted) {
+      whereClause += "status != 'completed' AND status != 'closed'";
+    }
+
     if (city != null && city.isNotEmpty && city != 'All Cities') {
-      whereClause += (whereClause.isEmpty ? '' : ' AND ') + 'city = ?';
+      whereClause += '${whereClause.isEmpty ? '' : ' AND '}city = ?';
       whereArgs.add(city);
     }
 
     if (categoryId != null && categoryId.isNotEmpty && categoryId != 'all') {
-      whereClause += (whereClause.isEmpty ? '' : ' AND ') + 'categoryId = ?';
+      whereClause += '${whereClause.isEmpty ? '' : ' AND '}categoryId = ?';
       whereArgs.add(categoryId);
     }
 
     if (type != null && type.isNotEmpty && type != 'all') {
-      whereClause += (whereClause.isEmpty ? '' : ' AND ') + 'type = ?';
+      whereClause += '${whereClause.isEmpty ? '' : ' AND '}type = ?';
       whereArgs.add(type);
     }
 
     if (priority != null && priority.isNotEmpty && priority != 'all') {
-      whereClause += (whereClause.isEmpty ? '' : ' AND ') + 'priority = ?';
+      whereClause += '${whereClause.isEmpty ? '' : ' AND '}priority = ?';
       whereArgs.add(priority);
     }
 
     if (status != null && status.isNotEmpty && status != 'all') {
-      whereClause += (whereClause.isEmpty ? '' : ' AND ') + 'status = ?';
+      whereClause += '${whereClause.isEmpty ? '' : ' AND '}status = ?';
       whereArgs.add(status);
     }
 
@@ -136,6 +142,23 @@ class PostRepository {
       where: 'id = ?',
       whereArgs: [postId],
     );
+  }
+
+  Future<void> reopenPost(String postId) async {
+    final db = await DBHelper.database;
+    final maps = await db.query('posts', where: 'id = ?', whereArgs: [postId]);
+    if (maps.isNotEmpty) {
+      final post = PostModel.fromMap(maps.first);
+      if (post.status == 'completed') {
+        throw Exception('Completed posts cannot be reopened.');
+      }
+      await db.update(
+        'posts',
+        {'status': 'open', 'isClosedEarly': 0},
+        where: 'id = ?',
+        whereArgs: [postId],
+      );
+    }
   }
 
   Future<void> updatePostStatus(String postId, String newStatus) async {

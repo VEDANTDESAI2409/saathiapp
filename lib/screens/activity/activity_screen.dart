@@ -7,7 +7,7 @@ import '../../core/widgets/status_badge.dart';
 import '../../core/widgets/empty_state_widget.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/post_provider.dart';
-import '../../providers/city_provider.dart';
+import '../../data/models/reservation_model.dart';
 import '../chat/chat_detail_screen.dart';
 import 'widgets/evidence_upload_modal.dart';
 
@@ -36,13 +36,18 @@ class _ActivityScreenState extends State<ActivityScreen>
     final user = authProvider.currentUser;
     final reservations = postProvider.userReservations;
 
-    final helpsDone = reservations
-        .where((r) => r.reservedById == user?.id)
+    // Requirement 14: Helps Done contains ONLY completed activities where user provided help
+    final helpsDoneCompleted = reservations
+        .where((r) => r.reservedById == user?.id && r.status == 'completed')
         .toList();
-    final helpsTaken = reservations
-        .where((r) => r.postOwnerId == user?.id)
+
+    // Helps Taken contains completed requests where user was recipient
+    final helpsTakenCompleted = reservations
+        .where((r) => r.postOwnerId == user?.id && r.status == 'completed')
         .toList();
-    final active = reservations
+
+    // Active Reservations contains in-progress activities
+    final activeReservations = reservations
         .where((r) => r.status != 'completed' && r.status != 'cancelled')
         .toList();
 
@@ -66,9 +71,21 @@ class _ActivityScreenState extends State<ActivityScreen>
           child: TabBarView(
             controller: _tabController,
             children: [
-              _buildList(context, helpsDone),
-              _buildList(context, helpsTaken),
-              _buildList(context, active),
+              _buildPhotoActivityList(
+                context,
+                helpsDoneCompleted,
+                isCompletedView: true,
+              ),
+              _buildPhotoActivityList(
+                context,
+                helpsTakenCompleted,
+                isCompletedView: true,
+              ),
+              _buildPhotoActivityList(
+                context,
+                activeReservations,
+                isCompletedView: false,
+              ),
             ],
           ),
         ),
@@ -76,16 +93,16 @@ class _ActivityScreenState extends State<ActivityScreen>
     );
   }
 
-  Widget _buildList(BuildContext context, List reservations) {
-    final postProvider = Provider.of<PostProvider>(context, listen: false);
-    final cityProvider = Provider.of<CityProvider>(context, listen: false);
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
+  // Requirement 13: Instagram-style photo-centric card layout for Activity History
+  Widget _buildPhotoActivityList(
+    BuildContext context,
+    List<ReservationModel> reservations, {
+    required bool isCompletedView,
+  }) {
     if (reservations.isEmpty) {
       return const EmptyStateWidget(
         title: 'No activity records found',
-        description:
-            'Your completed or active help interactions will appear here.',
+        description: 'Your completed photo-documented help interactions will appear here.',
       );
     }
 
@@ -94,45 +111,129 @@ class _ActivityScreenState extends State<ActivityScreen>
       itemCount: reservations.length,
       itemBuilder: (context, i) {
         final res = reservations[i];
-        final isCompleted = res.status == 'completed';
 
         return AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Text(
-                    res.categoryName,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.trustTeal,
+              // Photo Header Thumbnail / Canvas (Instagram style)
+              Container(
+                height: 150,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.softMint,
+                  borderRadius: BorderRadius.circular(12),
+                  image: const DecorationImage(
+                    image: NetworkImage(
+                      'https://images.unsplash.com/photo-1593113598332-cd288d649433?w=500',
+                    ),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        AppColors.deepForest.withValues(alpha: 0.8),
+                        Colors.transparent,
+                      ],
                     ),
                   ),
-                  const Spacer(),
-                  StatusBadge(status: res.status),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                res.postTitle,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.deepForest,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Reserved Qty: ${res.reservedQuantity} item(s)',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.trustTeal,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              res.categoryName,
+                              style: const TextStyle(
+                                color: AppColors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          StatusBadge(status: res.status),
+                        ],
+                      ),
+                      Text(
+                        res.postTitle,
+                        style: const TextStyle(
+                          color: AppColors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
 
+              // Details Row
+              Row(
+                children: [
+                  const Icon(
+                    Icons.inventory_2_outlined,
+                    size: 14,
+                    color: AppColors.trustTeal,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Quantity: ${res.reservedQuantity} items',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.deepForest,
+                    ),
+                  ),
+                  const Spacer(),
+                  const Icon(
+                    Icons.calendar_today,
+                    size: 12,
+                    color: AppColors.textMuted,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    res.createdAt,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+              if (res.note.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Note: "${res.note}"',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+
+              // Actions Row
               Row(
                 children: [
                   Expanded(
@@ -169,33 +270,26 @@ class _ActivityScreenState extends State<ActivityScreen>
                   ),
                 ],
               ),
-              if (!isCompleted) ...[
+
+              // Requirement 12: Mandatory evidence upload modal triggers when tapping "Complete Assistance"
+              if (!isCompletedView) ...[
                 const SizedBox(height: 8),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
+                  child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.trustTeal,
                       foregroundColor: AppColors.white,
                     ),
-                    onPressed: () async {
-                      final userId = authProvider.currentUser?.id ?? '';
-                      await postProvider.completeReservation(
-                        res,
-                        userId,
-                        cityProvider.selectedCity,
+                    icon: const Icon(Icons.verified_outlined, size: 18),
+                    label: const Text('Complete Assistance (Photo Required)'),
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (_) => EvidenceUploadModal(reservation: res),
                       );
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Activity marked as completed! Score updated.',
-                            ),
-                          ),
-                        );
-                      }
                     },
-                    child: const Text('Mark as Completed'),
                   ),
                 ),
               ],

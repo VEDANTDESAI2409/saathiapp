@@ -5,7 +5,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/empty_state_widget.dart';
 import '../../providers/post_provider.dart';
 import '../../providers/category_provider.dart';
-import '../../providers/city_provider.dart';
 import '../home/widgets/post_card.dart';
 
 class ExploreScreen extends StatefulWidget {
@@ -19,13 +18,19 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<PostProvider>(context, listen: false).fetchExplorePosts();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final postProvider = Provider.of<PostProvider>(context);
     final categoryProvider = Provider.of<CategoryProvider>(context);
-    final cityProvider = Provider.of<CityProvider>(context);
 
-    final posts = postProvider.posts;
-    final city = cityProvider.selectedCity;
+    final posts = postProvider.explorePosts;
 
     return Column(
       children: [
@@ -39,7 +44,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
               TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search food, medicines, books in $city...',
+                  hintText:
+                      'Explore food, medicines, books across all cities...',
                   prefixIcon: const Icon(
                     Icons.search,
                     color: AppColors.trustTeal,
@@ -49,18 +55,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           icon: const Icon(Icons.clear),
                           onPressed: () {
                             _searchController.clear();
-                            postProvider.fetchPosts(city: city, query: '');
+                            postProvider.fetchExplorePosts(query: '');
                           },
                         )
                       : null,
                 ),
                 onChanged: (val) {
-                  postProvider.fetchPosts(city: city, query: val);
+                  postProvider.fetchExplorePosts(query: val);
                 },
               ),
               const SizedBox(height: 12),
 
-              // Filter Dropdowns
+              // Filter Dropdowns (Isolated Explore State)
               Row(
                 children: [
                   // Category Dropdown Filter
@@ -74,7 +80,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
-                          value: postProvider.selectedCategoryFilter,
+                          value: postProvider.exploreCategoryFilter,
                           isExpanded: true,
                           style: const TextStyle(
                             fontSize: 12,
@@ -94,10 +100,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           ],
                           onChanged: (val) {
                             if (val != null) {
-                              postProvider.fetchPosts(
-                                city: city,
-                                categoryId: val,
-                              );
+                              postProvider.fetchExplorePosts(categoryId: val);
                             }
                           },
                         ),
@@ -117,7 +120,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
-                          value: postProvider.selectedPriorityFilter,
+                          value: postProvider.explorePriorityFilter,
                           isExpanded: true,
                           style: const TextStyle(
                             fontSize: 12,
@@ -143,10 +146,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           ],
                           onChanged: (val) {
                             if (val != null) {
-                              postProvider.fetchPosts(
-                                city: city,
-                                priority: val,
-                              );
+                              postProvider.fetchExplorePosts(priority: val);
                             }
                           },
                         ),
@@ -165,7 +165,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           child: Row(
             children: [
               Text(
-                'Showing ${posts.length} results in $city',
+                'Showing ${posts.length} results (All Cities)',
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -173,14 +173,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 ),
               ),
               const Spacer(),
-              if (postProvider.selectedCategoryFilter != 'all' ||
-                  postProvider.selectedPriorityFilter != 'all' ||
+              if (postProvider.exploreCategoryFilter != 'all' ||
+                  postProvider.explorePriorityFilter != 'all' ||
                   _searchController.text.isNotEmpty)
                 GestureDetector(
                   onTap: () {
                     _searchController.clear();
-                    postProvider.fetchPosts(
-                      city: city,
+                    postProvider.fetchExplorePosts(
                       categoryId: 'all',
                       priority: 'all',
                       query: '',
@@ -201,7 +200,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
         // Results List
         Expanded(
-          child: postProvider.isLoading
+          child: postProvider.isExploreLoading
               ? const Center(child: CircularProgressIndicator())
               : posts.isEmpty
               ? const EmptyStateWidget(

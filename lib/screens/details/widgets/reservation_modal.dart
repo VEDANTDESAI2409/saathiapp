@@ -6,6 +6,7 @@ import '../../../core/widgets/app_button.dart';
 import '../../../data/models/post_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/post_provider.dart';
+import '../../../providers/city_provider.dart';
 
 class ReservationModal extends StatefulWidget {
   final PostModel post;
@@ -25,9 +26,14 @@ class _ReservationModalState extends State<ReservationModal> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final postProvider = Provider.of<PostProvider>(context);
+    final cityProvider = Provider.of<CityProvider>(context);
 
     final user = authProvider.currentUser;
+    final preferredCity = cityProvider.selectedCity;
     final maxQty = widget.post.remainingQuantity;
+    final unitLabel = widget.post.quantityUnit.isNotEmpty
+        ? widget.post.quantityUnit
+        : 'items';
 
     return Padding(
       padding: EdgeInsets.only(
@@ -64,7 +70,7 @@ class _ReservationModalState extends State<ReservationModal> {
           ),
           const SizedBox(height: 4),
           Text(
-            '${widget.post.title} (${widget.post.remainingQuantity} remaining)',
+            '${widget.post.title} ($maxQty $unitLabel remaining)',
             style: const TextStyle(
               fontSize: 13,
               color: AppColors.textSecondary,
@@ -73,9 +79,9 @@ class _ReservationModalState extends State<ReservationModal> {
           const SizedBox(height: 20),
 
           // Quantity Selector
-          const Text(
-            'Select Quantity / Items to Reserve',
-            style: TextStyle(
+          Text(
+            'Select Quantity ($unitLabel)',
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
               color: AppColors.deepForest,
@@ -101,9 +107,9 @@ class _ReservationModalState extends State<ReservationModal> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  '$_reservedQty',
+                  '$_reservedQty $unitLabel',
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: AppColors.deepForest,
                   ),
@@ -118,7 +124,7 @@ class _ReservationModalState extends State<ReservationModal> {
               ),
               const Spacer(),
               Text(
-                'Max: $maxQty',
+                'Max: $maxQty $unitLabel',
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.textMuted,
@@ -151,6 +157,7 @@ class _ReservationModalState extends State<ReservationModal> {
                   post: widget.post,
                   reservedById: user.id,
                   reservedByName: user.name,
+                  userPreferredCity: preferredCity,
                   reservedQuantity: _reservedQty,
                   note: _noteController.text.trim(),
                 );
@@ -171,7 +178,7 @@ class _ReservationModalState extends State<ReservationModal> {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Reservation failed: ${e.toString()}'),
+                      content: Text(e.toString().replaceAll('Exception: ', '')),
                     ),
                   );
                 }

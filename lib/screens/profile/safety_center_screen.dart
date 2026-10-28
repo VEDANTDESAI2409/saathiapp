@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../providers/auth_provider.dart';
 import '../../providers/admin_provider.dart';
 
 class SafetyCenterScreen extends StatefulWidget {
@@ -15,9 +14,7 @@ class SafetyCenterScreen extends StatefulWidget {
 class _SafetyCenterScreenState extends State<SafetyCenterScreen> {
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
     final adminProvider = Provider.of<AdminProvider>(context);
-    final user = authProvider.currentUser;
 
     return Scaffold(
       backgroundColor: AppColors.warmCream,

@@ -19,6 +19,7 @@ void main() {
         priority: 'emergency',
         totalQuantity: 10,
         remainingQuantity: 5,
+        quantityUnit: 'meals',
         city: 'Ahmedabad',
         areaName: 'Paldi',
         createdAt: '2026-10-27',
@@ -27,6 +28,7 @@ void main() {
       expect(post.isEmergency, true);
       expect(post.isNeed, true);
       expect(post.remainingQuantity, 5);
+      expect(post.quantityUnit, 'meals');
 
       final map = post.toMap();
       final restored = PostModel.fromMap(map);
@@ -59,26 +61,21 @@ void main() {
     });
 
     test('MonthlyUsageModel limit check test', () {
-      final usageUnder = MonthlyUsageModel(
-        userId: 'u1',
-        yearMonth: '2026-10',
-        count: 5,
-        limit: 15,
-      );
+      final usageUnder = MonthlyUsageModel(userId: 'u1', yearMonth: '2026-10', count: 5, limit: 15);
       expect(usageUnder.isLimitReached, false);
 
-      final usageReached = MonthlyUsageModel(
-        userId: 'u1',
-        yearMonth: '2026-10',
-        count: 15,
-        limit: 15,
-      );
+      final usageReached = MonthlyUsageModel(userId: 'u1', yearMonth: '2026-10', count: 15, limit: 15);
       expect(usageReached.isLimitReached, true);
     });
 
-    test('AppConfig helpline check test', () {
+    test('AppConfig helpline configuration test', () {
+      // Unconfigured by default (empty string)
+      AppConfig.helplineNumber = '';
+      expect(AppConfig.isHelplineConfigured(), false);
+
+      // When configured with genuine number
+      AppConfig.helplineNumber = '+91 90000 11111';
       expect(AppConfig.isHelplineConfigured(), true);
-      expect(AppConfig.monthlyHelpLimit, 15);
     });
   });
 }

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/city_provider.dart';
+import '../../providers/post_provider.dart';
 import 'edit_profile_screen.dart';
 import 'personal_impact_screen.dart';
 import 'verification_status_screen.dart';
@@ -12,7 +14,6 @@ import 'helpline_screen.dart';
 import 'safety_center_screen.dart';
 import 'notification_settings_screen.dart';
 import 'language_settings_screen.dart';
-import '../admin/admin_dashboard_screen.dart';
 import '../auth/login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -22,6 +23,7 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final cityProvider = Provider.of<CityProvider>(context);
+    final postProvider = Provider.of<PostProvider>(context);
 
     final user = authProvider.currentUser;
     final city = cityProvider.selectedCity;
@@ -106,7 +108,7 @@ class ProfileScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
-                              'City: $city',
+                              'Preferred City: $city',
                               style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -156,7 +158,84 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
+          // Preferred City Card Selector (Requirement 15)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.location_city, color: AppColors.trustTeal),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Registered Preferred City',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                      Text(
+                        city,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.deepForest,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                DropdownButton<String>(
+                  underline: const SizedBox.shrink(),
+                  icon: const Icon(
+                    Icons.swap_horiz,
+                    color: AppColors.trustTeal,
+                  ),
+                  items: AppConstants.supportedCities.map((c) {
+                    return DropdownMenuItem(value: c, child: Text(c));
+                  }).toList(),
+                  onChanged: (newCity) async {
+                    if (newCity != null) {
+                      cityProvider.setCity(newCity);
+                      await authProvider.setRegisteredCity(newCity);
+                      await postProvider.fetchHomePosts(preferredCity: newCity);
+
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Preferred city updated to $newCity! Home feed refreshed.',
+                            ),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
           // Menu List
+          _menuItem(
+            icon: Icons.edit_note,
+            title: 'Edit Profile & City',
+            subtitle: 'Update name, mobile, email, and preferred city',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+              );
+            },
+          ),
           _menuItem(
             icon: Icons.pie_chart_outline_rounded,
             title: 'Personal Impact Dashboard',
@@ -243,18 +322,7 @@ class ProfileScreen extends StatelessWidget {
             },
           ),
 
-          // Admin Dashboard Access
-          _menuItem(
-            icon: Icons.admin_panel_settings_outlined,
-            title: 'Admin Operations Dashboard',
-            subtitle: 'Operational metrics, verifications & report queue',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
-              );
-            },
-          ),
+          // Requirement 17: Admin Operations entry removed from Profile menu
           const SizedBox(height: 12),
 
           // Log Out Button

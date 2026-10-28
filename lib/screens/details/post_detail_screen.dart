@@ -27,8 +27,16 @@ class PostDetailScreen extends StatelessWidget {
     final adminProvider = Provider.of<AdminProvider>(context);
 
     final currentUser = authProvider.currentUser;
+    final preferredCity = cityProvider.selectedCity;
     final isOwner = currentUser?.id == post.userId;
     final isNeed = post.isNeed;
+    final unitLabel = post.quantityUnit.isNotEmpty
+        ? post.quantityUnit
+        : 'items';
+
+    // Requirement 1: City matching rule for fulfillment eligibility
+    final isSameCity =
+        preferredCity.trim().toLowerCase() == post.city.trim().toLowerCase();
 
     return Scaffold(
       backgroundColor: AppColors.warmCream,
@@ -64,6 +72,36 @@ class PostDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Out-of-city Restriction Warning Banner (Requirement 1)
+            if (!isSameCity && !isOwner)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.warmOrange.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.warmOrange),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.location_off_outlined,
+                      color: AppColors.warmOrange,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Out of city: Your preferred city is $preferredCity. You can only fulfill help requests in $preferredCity. Change your preferred city in Profile to participate in ${post.city}.',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.deepForest,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             // Top Badges
             Row(
               children: [
@@ -139,22 +177,51 @@ class PostDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Media Gallery (if available)
+            // Requirement 10: Display uploaded photos for Offers and Needs
             if (post.mediaUrls.isNotEmpty) ...[
               SizedBox(
-                height: 180,
+                height: 200,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   itemCount: post.mediaUrls.length,
                   itemBuilder: (context, i) {
-                    return Container(
-                      width: 260,
-                      margin: const EdgeInsets.only(right: 12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        image: DecorationImage(
-                          image: NetworkImage(post.mediaUrls[i]),
-                          fit: BoxFit.cover,
+                    final url = post.mediaUrls[i];
+                    return GestureDetector(
+                      onTap: () {
+                        // Full Image Lightbox Viewer
+                        showDialog(
+                          context: context,
+                          builder: (_) => Dialog(
+                            backgroundColor: Colors.transparent,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.network(
+                                url,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
+                                      padding: const EdgeInsets.all(32),
+                                      color: AppColors.white,
+                                      child: const Text(
+                                        'Image preview unavailable',
+                                      ),
+                                    ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 280,
+                        margin: const EdgeInsets.only(right: 12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.border),
+                          image: DecorationImage(
+                            image: NetworkImage(url),
+                            fit: BoxFit.cover,
+                            onError: (exception, stackTrace) {},
+                          ),
                         ),
                       ),
                     );
@@ -187,7 +254,7 @@ class PostDetailScreen extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '${post.remainingQuantity} of ${post.totalQuantity} Items Available',
+                        '${post.remainingQuantity} of ${post.totalQuantity} $unitLabel',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -363,24 +430,37 @@ class PostDetailScreen extends StatelessWidget {
             const SizedBox(height: 32),
 
             // Action Buttons
+            // Requirement 1 & 11 logic:
             if (!isOwner && post.status == 'open' && post.remainingQuantity > 0)
               AppButton(
                 label: isNeed ? 'Offer Help / Reserve' : 'Request Assistance',
                 width: double.infinity,
-                variant: AppButtonVariant.primary,
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: AppColors.white,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(24),
-                      ),
-                    ),
-                    builder: (_) => ReservationModal(post: post),
-                  );
-                },
+                variant: isSameCity
+                    ? AppButtonVariant.primary
+                    : AppButtonVariant.secondary,
+                onPressed: isSameCity
+                    ? () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: AppColors.white,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(24),
+                            ),
+                          ),
+                          builder: (_) => ReservationModal(post: post),
+                        );
+                      }
+                    : () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Fulfillment restricted: You can only fulfill help requests in your preferred city ($preferredCity).',
+                            ),
+                          ),
+                        );
+                      },
               )
             else if (isOwner && post.status == 'open')
               AppButton(
@@ -388,17 +468,55 @@ class PostDetailScreen extends StatelessWidget {
                 width: double.infinity,
                 variant: AppButtonVariant.outlined,
                 onPressed: () async {
-                  await postProvider.closePostEarly(
-                    post.id,
-                    cityProvider.selectedCity,
-                  );
+                  final messenger = ScaffoldMessenger.of(context);
+                  final nav = Navigator.of(context);
+                  await postProvider.closePostEarly(post.id, preferredCity);
                   if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    nav.pop();
+                    messenger.showSnackBar(
                       const SnackBar(content: Text('Post closed early.')),
                     );
                   }
                 },
+              )
+            else if (isOwner &&
+                (post.status == 'closed' || post.isClosedEarly) &&
+                post.status != 'completed')
+              // Requirement 11: Reopen behavior for closed incomplete posts
+              AppButton(
+                label: 'Reopen Post',
+                width: double.infinity,
+                variant: AppButtonVariant.primary,
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final nav = Navigator.of(context);
+                  await postProvider.reopenPost(post.id, preferredCity);
+                  if (context.mounted) {
+                    nav.pop();
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Post reopened successfully!'),
+                      ),
+                    );
+                  }
+                },
+              )
+            else if (post.status == 'completed')
+              Container(
+                padding: const EdgeInsets.all(12),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.softMint,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Assistance Completed. Completed posts cannot be reopened.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.trustTeal,
+                  ),
+                ),
               ),
 
             const SizedBox(height: 40),
@@ -439,6 +557,7 @@ class PostDetailScreen extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {
+                final messenger = ScaffoldMessenger.of(context);
                 adminProvider.submitReport(
                   ReportModel(
                     id: 'rep_${DateTime.now().millisecondsSinceEpoch}',
@@ -454,7 +573,7 @@ class PostDetailScreen extends StatelessWidget {
                   ),
                 );
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(content: Text('Report submitted for review.')),
                 );
               },

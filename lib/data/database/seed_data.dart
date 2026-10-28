@@ -18,8 +18,17 @@ class SeedData {
       }, conflictAlgorithm: ConflictAlgorithm.replace);
     }
 
-    // 2. Banners
+    // 2. Banners (Helpline banner reads configured value)
     final banners = [
+      {
+        'id': 'banner_helpline',
+        'title': 'Management Support Helpline',
+        'description': 'Need immediate assistance or emergency coordination? Contact management support.',
+        'imageUrl': 'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=800',
+        'actionType': 'helpline',
+        'actionPayload': '',
+        'isActive': 1,
+      },
       {
         'id': 'banner_1',
         'title': 'Winter Clothing Drive',
@@ -62,7 +71,7 @@ class SeedData {
       {
         'id': 'user_current',
         'name': 'Aarav Patel',
-        'phone': '+91 98765 43210',
+        'phone': 'Member Phone',
         'email': 'aarav.patel@saathiapp.org',
         'registeredCity': 'Ahmedabad',
         'avatarUrl': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
@@ -77,7 +86,7 @@ class SeedData {
       {
         'id': 'user_meera',
         'name': 'Meera Shah',
-        'phone': '+91 98220 11223',
+        'phone': 'Member Phone',
         'email': 'meera@charitycare.org',
         'registeredCity': 'Ahmedabad',
         'avatarUrl':
@@ -91,19 +100,19 @@ class SeedData {
         'createdAt': '2025-11-01',
       },
       {
-        'id': 'user_admin',
-        'name': 'Saathi Admin Support',
-        'phone': '+91 80007 22844',
-        'email': 'admin@saathiapp.org',
-        'registeredCity': 'Ahmedabad',
+        'id': 'user_surat_helper',
+        'name': 'Rajesh Varma',
+        'phone': 'Member Phone',
+        'email': 'rajesh@suratcare.org',
+        'registeredCity': 'Surat',
         'avatarUrl': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
         'isVerified': 1,
         'verificationStatus': 'approved',
-        'contributionScore': 990,
-        'helpsDoneCount': 120,
-        'helpsTakenCount': 0,
-        'role': 'admin',
-        'createdAt': '2025-01-01',
+        'contributionScore': 310,
+        'helpsDoneCount': 15,
+        'helpsTakenCount': 2,
+        'role': 'user',
+        'createdAt': '2025-12-01',
       },
     ];
 
@@ -111,7 +120,7 @@ class SeedData {
       await db.insert('users', u, conflictAlgorithm: ConflictAlgorithm.replace);
     }
 
-    // 4. Initial Seed Posts (Needs & Offers)
+    // 4. Initial Seed Posts
     final posts = [
       {
         'id': 'post_emergency_1',
@@ -128,8 +137,11 @@ class SeedData {
         'priority': 'emergency',
         'totalQuantity': 2,
         'remainingQuantity': 1,
+        'quantityUnit': 'units',
         'city': 'Ahmedabad',
         'areaName': 'Civil Hospital, Asarwa',
+        'latitude': 23.0528,
+        'longitude': 72.5936,
         'durationText': 'Immediate / 24 Hours',
         'expiresAt': '2026-10-30',
         'status': 'open',
@@ -155,8 +167,11 @@ class SeedData {
         'priority': 'high',
         'totalQuantity': 3,
         'remainingQuantity': 3,
+        'quantityUnit': 'kits',
         'city': 'Ahmedabad',
         'areaName': 'Satellite, Ahmedabad',
+        'latitude': 23.0300,
+        'longitude': 72.5176,
         'durationText': 'Within 3 days',
         'expiresAt': '2026-11-05',
         'status': 'open',
@@ -181,8 +196,11 @@ class SeedData {
         'priority': 'normal',
         'totalQuantity': 20,
         'remainingQuantity': 15,
+        'quantityUnit': 'meals',
         'city': 'Ahmedabad',
         'areaName': 'Navrangpura, Ahmedabad',
+        'latitude': 23.0368,
+        'longitude': 72.5615,
         'durationText': 'Available till 8 PM today',
         'expiresAt': '2026-10-27 20:00',
         'status': 'open',
@@ -194,31 +212,34 @@ class SeedData {
         'createdAt': '2026-10-27 12:00 PM',
       },
       {
-        'id': 'post_offer_2',
-        'userId': 'user_meera',
-        'userName': 'Meera Shah',
-        'userAvatar':
-            'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200',
+        'id': 'post_surat_1',
+        'userId': 'user_surat_helper',
+        'userName': 'Rajesh Varma',
+        'userAvatar': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
         'userIsVerified': 1,
-        'type': 'offer',
-        'title': 'Winter Blankets & Sweaters Donation (5 sets)',
-        'description': 'Clean, washed adult sweaters and woolen blankets ready for night shelter or cold weather distribution.',
+        'type': 'need',
+        'title': 'Winter Blankets Needed for Textile Workers',
+        'description': 'Night shift textile workers near Ring Road Surat require warm blankets and sweaters.',
         'categoryId': 'cat_clothing',
         'categoryName': 'Clothing & Wear',
-        'priority': 'normal',
-        'totalQuantity': 5,
-        'remainingQuantity': 5,
-        'city': 'Ahmedabad',
-        'areaName': 'Paldi, Ahmedabad',
+        'priority': 'high',
+        'totalQuantity': 10,
+        'remainingQuantity': 8,
+        'quantityUnit': 'pairs',
+        'city': 'Surat',
+        'areaName': 'Ring Road, Surat',
+        'latitude': 21.1702,
+        'longitude': 72.8311,
         'durationText': 'This week',
-        'expiresAt': '2026-11-01',
+        'expiresAt': '2026-11-10',
         'status': 'open',
         'mediaUrls': jsonEncode([
           'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=800',
         ]),
-        'contactInstructions': 'Pickup or local transport available',
+        'contactInstructions':
+            'Contact community coordinator near Textile Market',
         'isClosedEarly': 0,
-        'createdAt': '2026-10-25 09:15 AM',
+        'createdAt': '2026-10-25 11:00 AM',
       },
     ];
 
@@ -232,7 +253,7 @@ class SeedData {
         'id': 'notif_1',
         'userId': 'user_current',
         'title': 'Welcome to SaathiApp!',
-        'body': 'Your account is active. You can request or offer help in Ahmedabad.',
+        'body': 'Your account is active. You can request or offer help in your city.',
         'type': 'verification',
         'relatedEntityId': '',
         'timestamp': '2026-10-27 09:00 AM',
